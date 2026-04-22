@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Attendance Tracker Pro</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">A</div>
+                <span class="brand-name">Trackly Pro</span>
+            </div>
+            
+            <nav class="nav-menu">
+                <li class="nav-item active"><a href="index.html">Dashboard</a></li>
+                <li class="nav-item" id="nav-students"><a href="students.html">Students</a></li>
+                <li class="nav-item"><a href="attendance.html">Mark Attendance</a></li>
+                <li class="nav-item"><a href="analytics.html">AI Analytics</a></li>
+                <li class="nav-item" style="margin-top: auto;"><a href="#" id="logoutBtn">Logout</a></li>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+                <div>
+                    <h1 style="font-size: 1.875rem; font-weight: 700;">System Overview</h1>
+                    <p class="text-muted" id="welcome-message">Welcome back, User</p>
+                </div>
+                <div id="user-profile" style="display: flex; align-items: center; gap: 15px;">
+                    <div style="text-align: right;">
+                        <span id="user-name" style="display: block; font-weight: 600;">Full Name</span>
+                        <span id="user-role" class="badge badge-success">Role</span>
+                    </div>
+                    <div style="width: 45px; height: 45px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--primary);">
+                        U
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid" id="stats-container">
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">👥</div>
+                    <div class="stat-info">
+                        <h3>Total Students</h3>
+                        <p id="stat-total-students">0</p>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">📈</div>
+                    <div class="stat-info">
+                        <h3>Avg Attendance</h3>
+                        <p id="stat-avg-attendance">0%</p>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">⚠️</div>
+                    <div class="stat-info">
+                        <h3>At Risk</h3>
+                        <p id="stat-at-risk">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <h2 style="font-size: 1.25rem; margin-bottom: 1.5rem;">Attendance Trends (7 Days)</h2>
+                    <canvas id="trendsChart" height="100"></canvas>
+                </div>
+                <div class="card">
+                    <h2 style="font-size: 1.25rem; margin-bottom: 1.5rem;">AI Insights</h2>
+                    <div id="ai-insights-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <p class="text-muted">Loading insights...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Table -->
+            <div class="card">
+                <h2 style="font-size: 1.25rem; margin-bottom: 1.5rem;">Recent Attendance Logs</h2>
+                <div class="table-container">
+                    <table id="logsTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Timestamp</th>
+                                <th>Distance</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Logs will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

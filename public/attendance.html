@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance | Trackly Pro</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">A</div>
+                <span class="brand-name">Trackly Pro</span>
+            </div>
+            <nav class="nav-menu">
+                <li class="nav-item"><a href="index.html">Dashboard</a></li>
+                <li class="nav-item active"><a href="attendance.html">Mark Attendance</a></li>
+                <li class="nav-item"><a href="analytics.html">AI Analytics</a></li>
+                <li class="nav-item" style="margin-top: auto;"><a href="#" id="logoutBtn">Logout</a></li>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header style="margin-bottom: 2.5rem;">
+                <h1 style="font-size: 1.875rem; font-weight: 700;">Smart Attendance</h1>
+                <p class="text-muted">Real-time location & time validation</p>
+            </header>
+
+            <div style="max-width: 600px;">
+                <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+                    <div id="status-icon" style="font-size: 4rem; margin-bottom: 1.5rem;">📍</div>
+                    <h2 id="status-title">Detecting Location...</h2>
+                    <p id="status-desc" class="text-muted" style="margin: 1rem 0 2rem;">Please allow location access to continue</p>
+                    
+                    <div id="location-details" style="display: none; margin-bottom: 2rem; padding: 1.5rem; background: #f1f5f9; border-radius: 12px; text-align: left;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span class="text-muted">Distance to Campus:</span>
+                            <span id="distance-val" style="font-weight: 700;">0m</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="text-muted">Status:</span>
+                            <span id="range-status" class="badge">Checking...</span>
+                        </div>
+                    </div>
+
+                    <button id="markBtn" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1.25rem; font-size: 1.1rem;" disabled>
+                        Confirm Attendance
+                    </button>
+                    
+                    <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.8rem;">
+                        <span style="color: var(--danger);">*</span> Attendance is only valid within the institution's geo-fence.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Recent History -->
+            <div class="card">
+                <h2 style="font-size: 1.25rem; margin-bottom: 1.5rem;">Your Recent Logs</h2>
+                <div class="table-container">
+                    <table id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Distance</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.clear();
+                    window.location.href = '/login.html';
+                });
+            }
+
+            initLocationDiscovery();
+            loadHistory();
+        });
+
+        async function loadHistory() {
+            try {
+                const res = await api.getAttendanceHistory();
+                const tbody = document.querySelector('#historyTable tbody');
+                tbody.innerHTML = res.data.map(log => `
+                    <tr>
+                        <td>${log.date}</td>
+                        <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
+                        <td>${log.distanceFromCenter}m</td>
+                        <td><span class="badge badge-success">${log.status}</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function initLocationDiscovery() {
+            const title = document.getElementById('status-title');
+            const desc = document.getElementById('status-desc');
+            const details = document.getElementById('location-details');
+            const distVal = document.getElementById('distance-val');
+            const rangeStatus = document.getElementById('range-status');
+            const markBtn = document.getElementById('markBtn');
+
+            if (!navigator.geolocation) {
+                title.textContent = "Error";
+                desc.textContent = "Geolocation is not supported by your browser.";
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const { latitude, longitude } = pos.coords;
+                
+                // For demo/dev purposes, we'll calculate client-side first to show feedback
+                // True validation happens on server
+                const instLat =12.9716; // Fetch from config in real app
+                const instLng = 77.5946;
+                const distance = calculateDistance(latitude, longitude, instLat, instLng);
+
+                details.style.display = 'block';
+                distVal.textContent = `${Math.round(distance)}m`;
+                
+                if (distance <= 500) {
+                    title.textContent = "Location Verified";
+                    desc.textContent = "You are within the institution's range.";
+                    rangeStatus.textContent = "In Range";
+                    rangeStatus.className = "badge badge-success";
+                    markBtn.disabled = false;
+                    document.getElementById('status-icon').textContent = "✅";
+                } else {
+                    title.textContent = "Out of Range";
+                    desc.textContent = "Please move closer to the campus.";
+                    rangeStatus.textContent = "Too Far";
+                    rangeStatus.className = "badge badge-danger";
+                    document.getElementById('status-icon').textContent = "❌";
+                }
+
+                markBtn.addEventListener('click', async () => {
+                    try {
+                        markBtn.disabled = true;
+                        markBtn.textContent = "Marking...";
+                        
+                        const res = await api.markAttendance({ lat: latitude, lng: longitude });
+                        if (res.success) {
+                            ui.showToast('Attendance marked successfully!', 'success');
+                            window.location.href = 'index.html';
+                        }
+                    } catch (err) {
+                        ui.showToast(err.message, 'error');
+                        markBtn.disabled = false;
+                        markBtn.textContent = "Confirm Attendance";
+                    }
+                });
+
+            }, (err) => {
+                title.textContent = "Access Denied";
+                desc.textContent = "Please enable location services to mark attendance.";
+                console.error(err);
+            });
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+    </script>
+</body>
+</html>
